@@ -3,7 +3,7 @@ import os
 from dis_bot import DisBot
 
 client = discord.Client(intents=discord.Intents.default())
-Botyaga = DisBot(317276723555336192)
+Botyaga = DisBot(os.getenv('ADMIN_ID'))
 
 @client.event
 async def on_ready():
@@ -15,10 +15,5 @@ async def on_message(message):
         return
 
     await Botyaga.handle(message)
-    # if message.content.startswith('$hello'):
-    #     await message.channel.send(f'{message = }')
-    #     await message.channel.send(f'{message.author = }')
-    #     await message.channel.send(f'{type(message) = }')
-    #     await message.channel.send(f'{type(message.author) = }')
 
 client.run(os.getenv('TOKEN'))
