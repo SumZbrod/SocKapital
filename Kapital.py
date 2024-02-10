@@ -54,9 +54,6 @@ class Kapital:
         self.players[player_name].request(value)
 
     def submit_request(self):
-        """
-        submit requests
-        """
         log_table = pd.DataFrame(columns=['request', 'result'], index=self.players.keys())
         request_result = {}
         request_amount = sum((P.request_value for P in self.players.values()))
