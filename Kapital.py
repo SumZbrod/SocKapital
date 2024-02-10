@@ -28,7 +28,7 @@ class User:
         self.vote_name = vote_name
 
     def set_vote_value(self, value):
-        assert self.capital >= value, f"You can't vote, your budget to low {self.capital}, not {value}"
+        assert self.capital >= value > 0, f"Ставка должна быть больше нуля до {self.capital}, а не {value}"
         self.capital -= value
         self.vote_value = value
         
