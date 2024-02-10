@@ -37,7 +37,7 @@ class DisBot:
 
     async def update_counter(self, V=1):
         self.number_selections += V
-        if self.number_selections == len(self.players):
+        if self.number_selections == len(self.players) - len(self.luzers):
             self.number_selections = 0
             if self.status == 'requesting':
                 request_result, submit_request_log = self.kapital.submit_request()
@@ -54,17 +54,17 @@ class DisBot:
                 vote_result, submit_vote_log = self.kapital.submit_vote()
                 self.luzers += vote_result
                 voting_notifications = "Голосование закончилось, к сожалению нас покидает" + ", ".join(vote_result) 
-                if len(self.kapital.players) == 1:
-                    voting_notifications += f"\n Победил {self.kapital.get_win_name()}, со счётом {self.kapital.players[0].capital}"
+                if len(self.kapital.players) <= 1:
+                    if len(self.kapital.players) == 1:
+                        voting_notifications += f"\n Победил {self.kapital.get_win_name()}, со счётом {self.kapital.players[0].capital}"
+                    else:
+                        voting_notifications += "\nВсе проиграли :("
                     voting_notifications += "\nВот история выборов игроков\n" + self.kapital.history
                     self.status.status_id = 3
+                    await self.notification(voting_notifications, self.players)
                     return
-                elif len(self.kapital.players) == 0:
-                    voting_notifications += "\nВсе проиграли :("
-                    voting_notifications += "\nВот история выборов игроков\n" + self.kapital.history
-                    self.status.status_id = 3
-                    return
-                await self.notification(voting_notifications)
+
+                await self.notification(voting_notifications, self.players)
 
                 new_luzers_notification = "К сожалению вы проиграли, но вы можете продолжать следить за игрой, только не разговариваете!\n"
                 new_luzers_notification += "Вот история выборов игроков\n" + self.kapital.history
@@ -111,6 +111,7 @@ class DisBot:
         except Exception as inst:
             await message.channel.send(str(inst))
             raise inst
+
     async def voting(self, message):
         try:
             content = message.content
@@ -121,11 +122,11 @@ class DisBot:
             await message.channel.send(str(inst))
             raise inst
 
-
-    async def notification(self, text):
-        print(text)
+    async def notification(self, text, members=None):
         if isinstance(text, str):
-            for player in self.players:
+            if members == None:
+                members = set(self.players) - set(self.luzers)
+            for player in members:
                 await player.send(text)
         else:
             for player in self.players:
