@@ -37,7 +37,8 @@ class User:
         return f"<{self.name}: {self.capital}>"
 
 class Kapital:
-    def __init__(self, Players):
+    def __init__(self, Players, history=''):
+        self.history = history
         if isinstance(Players, list):
             self.players = {name: User(name) for name in Players}
         else:
@@ -58,18 +59,17 @@ class Kapital:
         request_result = {}
         request_amount = sum((P.request_value for P in self.players.values()))
         complete_capital = 2*self.capital - request_amount
-        # ic(complete_capital)
         if complete_capital < self.capital:
             ratio = complete_capital / request_amount
         else:
             ratio = 1
-        # ic(ratio)
-        
         for name, P in self.players.items():
             log_table.request.loc[name] = P.request_value
             player_result = P.submit_request(ratio)
             log_table.result.loc[name] = player_result
             request_result[name] = player_result
+
+        self.history += str(log_table) + '\n'
 
         return request_result, str(log_table)
 
@@ -114,7 +114,8 @@ class Kapital:
         for name in max_names:
             del self.players[name]
          
-        self = Kapital(self.players)
+        self.history += str_log + '\n'
+        self = Kapital(self.players, self.history)
         str_log = f"whom\who \n {log_table}\n lose: {max_names}"
 
         return max_names, str_log

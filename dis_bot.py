@@ -20,8 +20,10 @@ class DisBot:
     def __init__(self, admin_id):
         self.admin_id = admin_id   
         self.status = Status()
+
         self.kapital = None
-        self.lozers = []
+        self.luzers = None
+        self.players = None
 
     async def update(self):
         if self.status == "requesting":
@@ -42,31 +44,38 @@ class DisBot:
                 requesting_notifications = {name: 
                 f"Запросы закончились\nВы получили {request_result[name]}\nВаш капитал теперь равен {player.capital}" 
                 for name, player in self.kapital.players.items()}
-                await self.notification(requesting_notifications)
-
-                lozers_notification = {name: 
+                await self.notification(requesting_notifications)                
+                luzers_notification = {name: 
                 "Таблица запросов и результатов всех играков, никому не сообщайте об этом до конца игры\n" + submit_request_log 
-                for name in self.lozers}
-                await self.notification(lozers_notification)
+                for name in self.luzers}
+                await self.notification(luzers_notification)
 
             elif self.status == "voting":
                 vote_result, submit_vote_log = self.kapital.submit_vote()
-                self.lozers += vote_result
+                self.luzers += vote_result
                 voting_notifications = "Голосование закончилось, к сожалению нас покидает" + ", ".join(vote_result) 
                 if len(self.kapital.players) == 1:
                     voting_notifications += f"\n Победил {self.kapital.get_win_name()}, со счётом {self.kapital.players[0].capital}"
+                    voting_notifications += "\nВот история выборов игроков\n" + self.kapital.history
                     self.status.status_id = 3
+                    return
                 elif len(self.kapital.players) == 0:
                     voting_notifications += "\nВсе проиграли :("
+                    voting_notifications += "\nВот история выборов игроков\n" + self.kapital.history
                     self.status.status_id = 3
+                    return
                 await self.notification(voting_notifications)
 
-                lozers_notification = {name: 
+                new_luzers_notification = "К сожалению вы проиграли, но вы можете продолжать следить за игрой, только не разговариваете!\n"
+                new_luzers_notification += "Вот история выборов игроков\n" + self.kapital.history
+                new_luzers_notification = {name: new_luzers_notification for name in vote_result}
+                await self.notification(new_luzers_notification)
+                
+
+                luzers_notification = {name: 
                 "Вот так проголосовали все, ни кому не говорите это до конца игры\n" + submit_vote_log 
-                for name in self.lozers}
-                await self.notification(lozers_notification)
-
-
+                for name in self.luzers if name not in vote_result}
+                await self.notification(luzers_notification)
 
             self.status.next()
             await self.update()
@@ -129,7 +138,7 @@ class DisBot:
         
     async def restart(self, message):   
         self.players = []
-        self.lozers = []    
+        self.luzers = []    
         self.number_selections = 0
         self.kapital = None
         self.status = Status(0)
