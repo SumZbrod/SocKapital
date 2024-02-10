@@ -15,7 +15,6 @@ class Status:
         if self.status_id < 3: 
             self.status_id += 1 if self.status_id < 2 else -1
 
-
 class DisBot:
     def __init__(self, admin_id):
         self.admin_id = admin_id   
@@ -29,25 +28,30 @@ class DisBot:
         if self.status == "requesting":
             await self.notification(f"Kапитал составляет {self.kapital.capital} \nНапишите сколько из этого капитала вы хотите получить, целое число от 0 до {self.kapital.capital}")
         elif self.status == "voting":
-            self.players_names = {i: p.name for i, p in enumerate(self.players)}
+            self.players_names = [p.name for p in self.players]
             str_table = f"Выбирете номер игрока против которого будете голосовать\n"
-            for i, name in self.players_names.items():
+            for i, name in enumerate(self.players_names):
                 str_table += f"{i}) {name}\n"
             await self.notification(str_table)
 
     async def update_counter(self, V=1):
         self.number_selections += V
-        if self.number_selections == len(self.players) - len(self.luzers):
+        if self.number_selections >= len(self.players) - len(self.luzers):
             self.number_selections = 0
             if self.status == 'requesting':
                 request_result, submit_request_log = self.kapital.submit_request()
-                requesting_notifications = {name: 
-                f"Запросы закончились\nВы получили {request_result[name]}\nВаш капитал теперь равен {player.capital}" 
-                for name, player in self.kapital.players.items()}
+                requesting_notifications = {
+                    name: 
+                    f"Запросы закончились\nВы получили {request_result[name]}\nВаш капитал теперь равен {player.capital}" 
+                    for name, player in self.kapital.players.items()
+                }
                 await self.notification(requesting_notifications)                
-                luzers_notification = {name: 
-                "Таблица запросов и результатов всех играков, никому не сообщайте об этом до конца игры\n" + submit_request_log 
-                for name in self.luzers}
+                
+                luzers_notification = {
+                    name: 
+                    "Таблица запросов и результатов всех играков, никому не сообщайте об этом до конца игры\n" + submit_request_log 
+                    for name in self.luzers
+                }
                 await self.notification(luzers_notification)
 
             elif self.status == "voting":
@@ -93,7 +97,7 @@ class DisBot:
             if self.status == "joining":
                 await self.join(message)
             else:
-                message.channel.send("Набор играков пока не проводиться.")
+                await message.channel.send("Набор играков пока не проводиться.")
         else:
             if self.status == 'requesting':
                 await self.requesting(message)
@@ -101,7 +105,6 @@ class DisBot:
                 await self.voting(message)
             elif self.status == "stop":
                 await message.channel.send("Игра пока не началась")
-
 
     async def requesting(self, message):
         try:
@@ -135,7 +138,7 @@ class DisBot:
 
     async def join(self, message):
         self.players.append(message.author)
-        await self.notification(f"{message.author.name} join game, number of players is {len(self.players)}")
+        await self.notification(f"{message.author.name} добавился к игре, количество игроков: {len(self.players)}")
         
     async def restart(self, message):   
         self.players = []
@@ -149,9 +152,9 @@ class DisBot:
     async def start(self, message):
         if self.status == "stop":
             await self.restart(message)
-        await self.notification(f"game has started")
         self.status = Status(1)
         self.kapital = Kapital([player.name for player in self.players])
+        await self.notification(f"Игра началась")
         await self.update()
         
     
