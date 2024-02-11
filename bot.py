@@ -1,7 +1,7 @@
 from Kapital import Kapital
 from icecream import ic
 class Status:
-    statuses = ["joining", "requesting", "voting", "stop", "dotation"]
+    statuses = ["joining", "requesting", "voting", "stop"]
     def __init__(self, status_id=3):
         self.status_id = status_id
 
@@ -56,6 +56,15 @@ class DisBot:
                     for name in self.luzers
                 }
                 await self.notification(luzers_notification)
+                if self.kapital.all_negative():
+                    subsidy_result = self.kapital.make_subsidy()
+                    requesting_notifications = {
+                        name: 
+                        f"Так как у всех отрицательный счёт все получают субсидию в размере {subsidy_result}\nВаш капитал теперь равен {player.capital}" 
+                        for name, player in self.kapital.players.items()
+                    }
+                    await self.notification(requesting_notifications)                
+
 
             elif self.status == "voting":
                 vote_result, submit_vote_log = self.kapital.submit_vote()
@@ -83,6 +92,7 @@ class DisBot:
                 "Вот так проголосовали все, ни кому не говорите это до конца игры\n" + submit_vote_log 
                 for name in self.luzers if name not in vote_result}
                 await self.notification(luzers_notification)
+                
 
             self.status.next()
             await self.update()

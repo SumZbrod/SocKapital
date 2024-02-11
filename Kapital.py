@@ -143,16 +143,21 @@ class Kapital:
         for P in self.players.values(): 
             return P
 
-    def playeble(self):
-        playeble_list = [p for p in self.players.values() if p.capital > 0] 
-        ic(playeble_list)
-        return len(playeble_list)
-
     def ready(self):
         ready_list = [p for p in self.players.values() if p.status == 1 or p.capital < 0]
         ic(ready_list)
         return len(ready_list) == len(self)
 
+    def all_negative(self):
+        positives = [p for p in self.players.values() if p.capital > 0]
+        return len(positives) > 0
+
+    def make_subsidy(self):
+        max_negative = min([p.capital for p in self.players.values()])
+        for name in self.players:
+            self.players[name].capital -= max_negative
+        return max_negative 
+        
     def __len__(self):
         return len(self.players)
 
