@@ -59,6 +59,7 @@ class Kapital:
                 self.players[player_name].submit_vote() 
 
         self.capital = 10**len(str(len(self.players)**2))
+        self.kapital.players_names = None
 
     def request(self, player_name, value):
         value = self.v_int(value)
@@ -103,7 +104,7 @@ class Kapital:
 
     def set_vote_name(self, who_name, vote_name_id):
         try:
-            vote_name = list(self.players.keys())[vote_name_id]
+            vote_name = self.kapital.players_names[vote_name_id]
         except:
             raise Exception(f'Доступтны числа только от 0 до {len(self.players)}, а не "{vote_name_id}"')
         # assert vote_name in self.players, f"name '{vote_name}' can't find, you can chose only {list(self.players.keys())}"
@@ -148,7 +149,7 @@ class Kapital:
         return len(playeble_list)
 
     def ready(self):
-        ready_list = [p for p in self.players.values() if p.status == 1]
+        ready_list = [p for p in self.players.values() if p.status == 1 or p.capital < 0]
         ic(ready_list)
         return len(ready_list) == len(self)
 

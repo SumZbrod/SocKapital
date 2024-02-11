@@ -1,7 +1,7 @@
 from Kapital import Kapital
 from icecream import ic
 class Status:
-    statuses = ["joining", "requesting", "voting", "stop"]
+    statuses = ["joining", "requesting", "voting", "stop", "dotation"]
     def __init__(self, status_id=3):
         self.status_id = status_id
 
@@ -28,35 +28,18 @@ class DisBot:
         if self.status == "requesting":
             await self.notification(f"Kапитал составляет {self.kapital.capital} \nНапишите сколько из этого капитала вы хотите получить, целое число от 0 до {self.kapital.capital}")
         elif self.status == "voting":
-            self.players_names = [p.name for p in self.kapital.players.values()]
+            self.kapital.players_names = [p.name for p in self.kapital.players.values()]
+            positive_players = [p for p in self.players if p.capital > 0] 
             str_table = f"Выбирете номер игрока против которого будете голосовать\n"
-            for i, name in enumerate(self.players_names):
+            for i, name in enumerate(self.kapital.players_names):
                 str_table += f"{i}) {name}\n"
-            await self.notification(str_table)
+            await self.notification(str_table, positive_players)
 
-    async def update_counter(self, V=1):
-        self.number_selections += V
-        ic(self.status.status_id)
-        ic(self.number_selections )
+            bankrot_players  = [p for p in self.players if p.capital <= 0]
+            await self.notification("Вы не можете голосовать, у вас слишком мало баллов", bankrot_players)
 
-        # if self.status == "voting":
-        #     try:
-        #         neg_capital = self.kapital.negative_number()
-        #     except:
-        #         self.status.next()
-        #         await self.update()
-        ic(self.kapital.playeble())
-        if self.status == "voting":
-            VVV = 2*self.kapital.playeble()
-            if VVV == 0:
-                self.status.next()
-                await self.notification("Голосование пропускается, потому что у всех отрицательный счёт")
-                await self.update()
-                return
-        else:
-            VVV = len(self.kapital.players)
-
-        if self.number_selections >= VVV:
+    async def update_counter(self):
+        if self.ready():
             self.number_selections = 0
             if self.status == 'requesting':
                 request_result, submit_request_log = self.kapital.submit_request()
@@ -142,7 +125,7 @@ class DisBot:
             content = message.content
             answer_message = self.kapital.vote(message.author.name, message.content)
             await message.channel.send(answer_message)
-            await self.update_counter(.5)                        
+            await self.update_counter()                        
         except Exception as inst:
             await message.channel.send(str(inst))
             raise inst
