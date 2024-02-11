@@ -39,8 +39,6 @@ class User:
         
     def submit_vote(self):
         self.change_status(1, 0, 'submit_vote')
-        if self.status != 1:
-            ic(f"submit_vote {self.status}")
         self.vote_value = 0
         self.vote_name = -1
 
@@ -59,7 +57,7 @@ class Kapital:
                 self.players[player_name].submit_vote() 
 
         self.capital = 10**len(str(len(self.players)**2))
-        self.kapital.players_names = None
+        self.players_names = [p.name for p in self.players.values()]
 
     def request(self, player_name, value):
         value = self.v_int(value)
@@ -104,9 +102,10 @@ class Kapital:
 
     def set_vote_name(self, who_name, vote_name_id):
         try:
-            vote_name = self.kapital.players_names[vote_name_id]
+            vote_name = self.players_names[vote_name_id]
         except:
-            raise Exception(f'Доступтны числа только от 0 до {len(self.players)}, а не "{vote_name_id}"')
+            
+            raise Exception(f'Доступтны числа только от 0 до {len(self.players)-1}, а не "{vote_name_id}"')
         # assert vote_name in self.players, f"name '{vote_name}' can't find, you can chose only {list(self.players.keys())}"
         self.players[who_name].set_vote_name(vote_name)
 
@@ -150,7 +149,7 @@ class Kapital:
 
     def all_negative(self):
         positives = [p for p in self.players.values() if p.capital > 0]
-        return len(positives) > 0
+        return len(positives) == 0
 
     def make_subsidy(self):
         max_negative = min([p.capital for p in self.players.values()])
@@ -164,6 +163,27 @@ class Kapital:
     def __repr__(self):
         return f"{self.capital} | {', '.join(map(str, self.players.values()))}"
 
+def neg_test(): 
+    player_names = ["Q", "W", "E", "R"]
+    K = Kapital(player_names)
+    print(K)
+    K.request("Q", 100)
+    print(K.ready())
+    K.request("W", 80)
+    print(K.ready())
+    K.request("E", 70)
+    print(K.ready())
+    K.request("R", 50)
+    print(K.ready())
+    request_log = K.submit_request()
+    print(request_log)
+    ic(K.all_negative())
+    if K.all_negative():
+        subsidy =  K.make_subsidy()
+        ic(subsidy)
+    print(K)
+
+
 def qwe_test():
     player_names = ["Q", "W", "E"]
     K = Kapital(player_names)
@@ -173,14 +193,20 @@ def qwe_test():
     print(K.ready())
     K.request("W", 4)
     print(K.ready())
-    K.request("E", 3)
+    K.request("E", 1)
     print(K.ready())
     request_log = K.submit_request()
-    # print(request_log)
+    print(request_log)
 
-    # K.vote("Q", "W", 3)
-    # K.vote("W", "Q", 1)
-    # K.vote("E", "Q", 2)
+    K.vote("Q", 1)
+    K.vote("Q", 1)
+
+    K.vote("W", 0)
+    K.vote("W", 1)
+
+    K.vote("E", 1)
+    K.vote("E", 1)
+
     max_names, vote_log = K.submit_vote()
     print(vote_log)
     print(K)
@@ -198,7 +224,8 @@ def test_105():
 
 
 def main():
-    qwe_test()
+    # qwe_test()
+    neg_test()
 
 if __name__ == "__main__":
     main()
