@@ -42,7 +42,7 @@ class DisBot:
                 neg_capital = self.kapital.negative_number()
             except:
                 await self.notification("Голосование пропускается, потому что у всех отрицательный счёт")
-                self.status = Status(1)
+                self.status.next()
                 await self.update()
 
         if self.number_selections >= len(self.players) - len(self.luzers) - neg_capital:
