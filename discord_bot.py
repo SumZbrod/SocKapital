@@ -1,7 +1,8 @@
 import discord
 import os
-from dis_bot import DisBot
+from bot import DisBot
 from icecream import ic 
+from message_api import Message
 
 client = discord.Client(intents=discord.Intents.default())
 Botyaga = DisBot(int(os.getenv('ADMIN_ID')))
@@ -14,6 +15,7 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user:
         return
+    # message = Message(message)
     await Botyaga.handle(message)
 
 client.run(os.getenv('TOKEN'))

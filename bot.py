@@ -1,5 +1,5 @@
 from Kapital import Kapital
- 
+from icecream import ic
 class Status:
     statuses = ["joining", "requesting", "voting", "stop"]
     def __init__(self, status_id=3):
@@ -23,12 +23,12 @@ class DisBot:
         self.kapital = None
         self.luzers = None
         self.players = None
-
+ 
     async def update(self):
         if self.status == "requesting":
             await self.notification(f"Kапитал составляет {self.kapital.capital} \nНапишите сколько из этого капитала вы хотите получить, целое число от 0 до {self.kapital.capital}")
         elif self.status == "voting":
-            self.players_names = [p.name for p in self.players]
+            self.players_names = [p.name for p in self.kapital.players.values()]
             str_table = f"Выбирете номер игрока против которого будете голосовать\n"
             for i, name in enumerate(self.players_names):
                 str_table += f"{i}) {name}\n"
@@ -36,16 +36,27 @@ class DisBot:
 
     async def update_counter(self, V=1):
         self.number_selections += V
-        neg_capital = 0
-        if self.status == "voting":
-            try:
-                neg_capital = self.kapital.negative_number()
-            except:
-                await self.notification("Голосование пропускается, потому что у всех отрицательный счёт")
-                self.status.next()
-                await self.update()
+        ic(self.status.status_id)
+        ic(self.number_selections )
 
-        if self.number_selections >= len(self.players) - len(self.luzers) - neg_capital:
+        # if self.status == "voting":
+        #     try:
+        #         neg_capital = self.kapital.negative_number()
+        #     except:
+        #         self.status.next()
+        #         await self.update()
+        ic(self.kapital.playeble())
+        if self.status == "voting":
+            VVV = 2*self.kapital.playeble()
+            if VVV == 0:
+                self.status.next()
+                await self.notification("Голосование пропускается, потому что у всех отрицательный счёт")
+                await self.update()
+                return
+        else:
+            VVV = len(self.kapital.players)
+
+        if self.number_selections >= VVV:
             self.number_selections = 0
             if self.status == 'requesting':
                 request_result, submit_request_log = self.kapital.submit_request()
@@ -55,10 +66,10 @@ class DisBot:
                     for name, player in self.kapital.players.items()
                 }
                 await self.notification(requesting_notifications)                
-                
+
                 luzers_notification = {
                     name: 
-                    "Таблица запросов и результатов всех играков, никому не сообщайте об этом до конца игры\n" + submit_request_log 
+                    "Таблица запросов и результатов всех игроков, никому не сообщайте об этом до конца игры\n" + submit_request_log 
                     for name in self.luzers
                 }
                 await self.notification(luzers_notification)
@@ -69,7 +80,7 @@ class DisBot:
                 voting_notifications = "Голосование закончилось, к сожалению нас покидает" + ", ".join(vote_result) 
                 if len(self.kapital.players) <= 1:
                     if len(self.kapital.players) == 1:
-                        voting_notifications += f"\n Победил {self.kapital.get_win_name()}, со счётом {self.kapital.players[0].capital}"
+                        voting_notifications += f"\n Победил {self.kapital.get_win().name}, со счётом {self.kapital.get_win().capital}"
                     else:
                         voting_notifications += "\nВсе проиграли :("
                     voting_notifications += "\nВот история выборов игроков\n" + self.kapital.history
@@ -96,17 +107,19 @@ class DisBot:
     async def handle(self, message):
         content = message.content 
         if message.author.id == self.admin_id:
-            if content.startswith('$restart'):
+            if content.startswith('!restart'):
                 await self.restart(message)
                 return
-            elif content.startswith('$start'):
+            elif content.startswith('!start'):
                 await self.start(message)
                 return
-        if content.startswith('$join'):
+            elif content.startswith('!next'):
+                self.number_selections = 100
+        if content.startswith('!join'):
             if self.status == "joining":
                 await self.join(message)
             else:
-                await message.channel.send("Набор играков пока не проводиться.")
+                await message.channel.send("Набор игроков пока не проводится.")
         else:
             if self.status == 'requesting':
                 await self.requesting(message)
@@ -118,7 +131,7 @@ class DisBot:
     async def requesting(self, message):
         try:
             self.kapital.request(message.author.name, message.content)
-            await message.channel.send("Ваша заявка принята, ожидайте остальных игроков")
+            await message.channel.send("Ваш заявка принята, ожидайте остальных игроков")
             await self.update_counter()                        
         except Exception as inst:
             await message.channel.send(str(inst))
@@ -146,8 +159,11 @@ class DisBot:
                     await player.send(text[player.name])
 
     async def join(self, message):
-        self.players.append(message.author)
-        await self.notification(f"{message.author.name} добавился к игре, количество игроков: {len(self.players)}")
+        if message.author in self.players:
+            await message.channel.send("Ты уже в игре, долбаёб")
+        else:
+            self.players.append(message.author)
+            await self.notification(f"{message.author.name} добавился к игре, количество игроков: {len(self.players)}")
         
     async def restart(self, message):   
         self.players = []
