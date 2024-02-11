@@ -120,6 +120,10 @@ class Kapital:
 
         return max_names, str_log
         
+    def negative_number(self):
+        res = len((p for p in self.players if p.capital <= 0))
+        raise res < len(self.capital), "nobody can't vote"
+        return res
 
     def get_win_name(self):
         for name in self.players: 

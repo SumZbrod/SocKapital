@@ -36,7 +36,16 @@ class DisBot:
 
     async def update_counter(self, V=1):
         self.number_selections += V
-        if self.number_selections >= len(self.players) - len(self.luzers):
+        neg_capital = 0
+        if self.status == "voting":
+            try:
+                neg_capital = self.kapital.negative_number()
+            except:
+                await self.notification("Голосование пропускается, потому что у всех отрицательный счёт")
+                self.status = Status(1)
+                await self.update()
+
+        if self.number_selections >= len(self.players) - len(self.luzers) - neg_capital:
             self.number_selections = 0
             if self.status == 'requesting':
                 request_result, submit_request_log = self.kapital.submit_request()
