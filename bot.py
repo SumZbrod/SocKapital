@@ -1,5 +1,9 @@
 from Kapital import Kapital
 from icecream import ic
+
+# class NotNumber(Exception):
+
+
 class Status:
     statuses = ["joining", "requesting", "voting", "stop"]
     def __init__(self, status_id=3):
@@ -22,25 +26,30 @@ class DisBot:
 
         self.kapital = None
         self.luzers = None
-        self.players = None
+        self.players = None #list of discord authors
  
+    def get_by_name(self, name):
+        for P in self.players:
+            if P.name == name:
+                return P
+
     async def update(self):
         if self.status == "requesting":
-            await self.notification(f"Kапитал составляет {self.kapital.capital} \nНапишите сколько из этого капитала вы хотите получить, целое число от 0 до {self.kapital.capital}")
+            await self.notification(f"Раунд #{self.kapital.play_round}")
+            await self.notification(f"Kапитал составляет {self.kapital.capital} \nНапишите сколько из этого капитала вы хотите получить, целое число от 0 до {self.kapital.capital}", set(self.players) - set(self.luzers))
         elif self.status == "voting":
             self.kapital.players_names = [p.name for p in self.kapital.players.values()]
-            positive_players = [p for p in self.players if p.capital > 0] 
+            positive_players = [self.get_by_name(p.name) for p in self.kapital.players.values() if p.capital > 0] 
             str_table = f"Выбирете номер игрока против которого будете голосовать\n"
             for i, name in enumerate(self.kapital.players_names):
                 str_table += f"{i}) {name}\n"
             await self.notification(str_table, positive_players)
 
-            bankrot_players  = [p for p in self.players if p.capital <= 0]
+            bankrot_players  = [self.get_by_name(p.name) for p in self.kapital.players.values() if p.capital <= 0]
             await self.notification("Вы не можете голосовать, у вас слишком мало баллов", bankrot_players)
 
-    async def update_counter(self):
-        if self.ready():
-            self.number_selections = 0
+    async def update_status(self):
+        if self.kapital.ready():
             if self.status == 'requesting':
                 request_result, submit_request_log = self.kapital.submit_request()
                 requesting_notifications = {
@@ -56,7 +65,7 @@ class DisBot:
                     for name in self.luzers
                 }
                 await self.notification(luzers_notification)
-                if self.kapital.all_negative():
+                if len(self.kapital.get_positive_name()) == 0:
                     subsidy_result = self.kapital.make_subsidy()
                     requesting_notifications = {
                         name: 
@@ -65,11 +74,13 @@ class DisBot:
                     }
                     await self.notification(requesting_notifications)                
 
-
             elif self.status == "voting":
                 vote_result, submit_vote_log = self.kapital.submit_vote()
+                ic(vote_result)
                 self.luzers += vote_result
-                voting_notifications = "Голосование закончилось, к сожалению нас покидает" + ", ".join(vote_result) 
+                ic(self.luzers)
+
+                voting_notifications = "Голосование закончилось, к сожалению нас покидает: " + ", ".join(vote_result) 
                 if len(self.kapital.players) <= 1:
                     if len(self.kapital.players) == 1:
                         voting_notifications += f"\n Победил {self.kapital.get_win().name}, со счётом {self.kapital.get_win().capital}"
@@ -99,20 +110,29 @@ class DisBot:
 
     async def handle(self, message):
         content = message.content 
-        if message.author.id == self.admin_id:
+        if message.author.id in self.admin_id:
             if content.startswith('!restart'):
                 await self.restart(message)
                 return
             elif content.startswith('!start'):
                 await self.start(message)
                 return
-            elif content.startswith('!next'):
-                self.number_selections = 100
-        if content.startswith('!join'):
+                
+        # ic(message.author.name)
+        # ic(self.luzers)
+        # ic(message.author.name in self.luzers)
+        # ic()
+        if message.author.name in self.luzers:
+            await message.channel.send("Вы проиграли, дождитесь начала новой игры")
+        elif content.startswith('!join'):
             if self.status == "joining":
                 await self.join(message)
             else:
                 await message.channel.send("Набор игроков пока не проводится.")
+        elif content.startswith('!title'):
+            await message.channel.send("founder:kiki\nomega tester: poljik")
+        elif content.startswith('!list'):
+            await message.channel.send(", ".join([p.name for p in self.players]))
         else:
             if self.status == 'requesting':
                 await self.requesting(message)
@@ -124,18 +144,25 @@ class DisBot:
     async def requesting(self, message):
         try:
             self.kapital.request(message.author.name, message.content)
-            await message.channel.send("Ваш заявка принята, ожидайте остальных игроков")
-            await self.update_counter()                        
+            await message.channel.send("Вашa заявка принята, ожидайте остальных игроков")
+            await self.update_status()                        
         except Exception as inst:
             await message.channel.send(str(inst))
             raise inst
 
     async def voting(self, message):
+        ic()
+        ic(message.author.name)
+        ic(self.kapital.get_positive_name())
+
+        if message.author.name not in self.kapital.get_positive_name():
+            await message.channel.send("Вы не можете голосовать, потому что у вас недостаточно денег")
+            return
         try:
-            content = message.content
+            content = message.content   
             answer_message = self.kapital.vote(message.author.name, message.content)
             await message.channel.send(answer_message)
-            await self.update_counter()                        
+            await self.update_status()                        
         except Exception as inst:
             await message.channel.send(str(inst))
             raise inst
@@ -153,7 +180,7 @@ class DisBot:
 
     async def join(self, message):
         if message.author in self.players:
-            await message.channel.send("Ты уже в игре, долбаёб")
+            await message.channel.send("Bы уже в игре")
         else:
             self.players.append(message.author)
             await self.notification(f"{message.author.name} добавился к игре, количество игроков: {len(self.players)}")
@@ -161,13 +188,13 @@ class DisBot:
     async def restart(self, message):   
         self.players = []
         self.luzers = []    
-        self.number_selections = 0
         self.kapital = None
         self.status = Status(0)
         await message.channel.send('game has restarted')
         await self.join(message)
 
     async def start(self, message):
+        ic(self.status.status_id)
         if self.status == "stop":
             await self.restart(message)
         self.status = Status(1)

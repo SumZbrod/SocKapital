@@ -24,16 +24,17 @@ class User:
         self.change_status(1, 0, 'submit_request')
         final_request = round(self.request_value*ratio)
         self.capital += final_request 
+        self.request_value = 0
         return final_request
 
     def set_vote_name(self, vote_name):
-        self.change_status(0, .5, 'set_vote_name')
         assert vote_name != self.name, "Нельзя за себя голосовать"
+        self.change_status(0, .5, 'set_vote_name')
         self.vote_name = vote_name
 
     def set_vote_value(self, value):
-        self.change_status(.5, 1, 'set_vote_value')
         assert self.capital >= value > 0, f"Ставка должна быть больше нуля до {self.capital}, а не {value}"
+        self.change_status(.5, 1, 'set_vote_value')
         self.capital -= value
         self.vote_value = value
         
@@ -46,8 +47,9 @@ class User:
         return f"<{self.name}: {self.capital}>"
 
 class Kapital:
-    def __init__(self, Players, history=''):
+    def __init__(self, Players, history='', play_round=1):
         self.history = history
+        self.play_round = play_round
         if isinstance(Players, list):
             self.players = {name: User(name) for name in Players}
         else:
@@ -79,6 +81,8 @@ class Kapital:
             log_table.result.loc[name] = player_result
             request_result[name] = player_result
 
+
+        self.history += f"Round #{self.play_round}\n"
         self.history += str(log_table) + '\n'
 
         return request_result, str(log_table)
@@ -127,9 +131,11 @@ class Kapital:
         for name in max_names:
             del self.players[name]
          
-        self = Kapital(self.players, self.history)
         str_log = f"whom\who \n {log_table}\n lose: {max_names}"
         self.history += str_log + '\n'
+        self = Kapital(self.players, self.history, self.play_round+1)
+        with open('/home/kiki/Documents/py/kapital/history.log', 'w') as f:
+            f.write(self.history)
 
         return max_names, str_log
         
@@ -144,12 +150,12 @@ class Kapital:
 
     def ready(self):
         ready_list = [p for p in self.players.values() if p.status == 1 or p.capital < 0]
-        ic(ready_list)
+        # ic(ready_list)
         return len(ready_list) == len(self)
 
-    def all_negative(self):
-        positives = [p for p in self.players.values() if p.capital > 0]
-        return len(positives) == 0
+    def get_positive_name(self):
+        positives = [p.name for p in self.players.values() if p.capital > 0]
+        return positives
 
     def make_subsidy(self):
         max_negative = min([p.capital for p in self.players.values()])
@@ -224,8 +230,8 @@ def test_105():
 
 
 def main():
-    # qwe_test()
-    neg_test()
+    qwe_test()
+    # neg_test()
 
 if __name__ == "__main__":
     main()
